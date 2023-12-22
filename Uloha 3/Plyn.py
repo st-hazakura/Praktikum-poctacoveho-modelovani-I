@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 from scipy.stats import maxwell
 from matplotlib.animation import FuncAnimation
 
-
+#test
 BOLTZMANNOVA_KONSTANTA: float = 1.380649E-23
 HMOTNOST_CASTICE: float = 1E-26 #kg
 ROZMER_ATOMU: float = 1*1E-10   # 1 anstrem

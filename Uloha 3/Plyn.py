@@ -119,7 +119,7 @@ class Castice:
             self.kolize()
 
 
-    def porovnani_s_max_rozd(self):
+    def porovnani_s_max_rozd(self, nazev_grafu):
         modul_rychlosti = np.sqrt(np.sum(self.rychlosti_castic**2, axis = 1))   #v1=[sqrt(x1^2 + y1^2)], v2=[sqrt(x2^2 + y2^2)]
         plt.figure( figsize=(10,6))
         plt.hist(modul_rychlosti, bins = 20, density= True, alpha = 0.6)
@@ -128,7 +128,8 @@ class Castice:
         sorted_rychl = np.sort(modul_rychlosti)
         plt.plot(sorted_rychl, maxwell.pdf(sorted_rychl, scale = skalovani))
 
-        plt.show()
+        #plt.show()
+        plt.savefig(f'{nazev_grafu}.png')
 
 
     def mihani_castic_anim(self):
@@ -140,7 +141,6 @@ class Castice:
         fig = plt.figure(figsize=(9, 12))
         ax = fig.add_subplot(111, projection='3d')
 
-        
         data_poloh = np.array(self.pozice_castic) 
         x, y, z = data_poloh[:,0], data_poloh[:,1], data_poloh[:,2]
         graph = ax.scatter(x, y, z)
@@ -166,11 +166,11 @@ class Castice:
 def main():
     castice = Castice(27, 100)
     castice.generovat_zacatek()
-    castice.mihani_castic(10000) # ustalovani systemu
-    castice.porovnani_s_max_rozd()
+    castice.mihani_castic(500) # ustalovani systemu
+    castice.porovnani_s_max_rozd("graficek_0")
     for i in range(2):
-        castice.mihani_castic(5000)
-        castice.porovnani_s_max_rozd()
+        castice.mihani_castic(100)
+        castice.porovnani_s_max_rozd(f"graficek_{i+1}")
     castice.animovat_mihani_castic()
 
 

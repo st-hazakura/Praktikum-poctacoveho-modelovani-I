@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.stats import maxwell
+from scipy import interpolate
 from matplotlib.animation import FuncAnimation
 
 #test
@@ -131,6 +132,11 @@ class Castice:
         #plt.show()
         plt.savefig(f'{nazev_grafu}.png')
 
+        y, binEdges = np.histogram(modul_rychlosti, bins=20)
+        bincenters = 0.5 * (binEdges[1:] + binEdges[:-1])
+        #return sorted_rychl, modul_rychlosti
+        return bincenters, y, modul_rychlosti
+
 
     def mihani_castic_anim(self):
         self.nejmensi_cas_srazky()
@@ -162,15 +168,41 @@ class Castice:
         plt.show()
 
 
+def vykresli_multigraf():
+    ...
+
+
+def vykresli_multiplotgraf(xs, ys):
+    plt.figure(figsize=(10,6))
+    for i in range(len(xs)):
+        plt.plot(xs[i], ys[i])
+    plt.savefig('multiplotgraf.png')
+
+def vykresli_multihistogram(ys):
+    plt.figure(figsize=(10,6))
+    plt.tight_layout()
+    for y in ys:
+        plt.hist(y, bins=50, alpha=0.5)
+    plt.savefig('multihistgraf.png')
+    
+
 
 def main():
+    xs, ys, yhists = [], [], []
     castice = Castice(27, 100)
     castice.generovat_zacatek()
     castice.mihani_castic(500) # ustalovani systemu
-    castice.porovnani_s_max_rozd("graficek_0")
+    x, y, yhist = castice.porovnani_s_max_rozd("graficek_0")
+    xs.append(x)
+    ys.append(y)
     for i in range(2):
         castice.mihani_castic(100)
-        castice.porovnani_s_max_rozd(f"graficek_{i+1}")
+        x, y, yhist = castice.porovnani_s_max_rozd(f"graficek_{i+1}")
+        xs.append(x)
+        ys.append(y)
+        yhists.append(yhist)
+    vykresli_multiplotgraf(xs, ys)
+    vykresli_multihistogram(yhists)
     castice.animovat_mihani_castic()
 
 

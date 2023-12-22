@@ -1,9 +1,10 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.stats import maxwell
+from scipy import interpolate
 from matplotlib.animation import FuncAnimation
 
-
+#test
 BOLTZMANNOVA_KONSTANTA: float = 1.380649E-23
 HMOTNOST_CASTICE: float = 1E-26 #kg
 ROZMER_ATOMU: float = 1*1E-10   # 1 anstrem
@@ -119,7 +120,7 @@ class Castice:
             self.kolize()
 
 
-    def porovnani_s_max_rozd(self):
+    def porovnani_s_max_rozd(self, nazev_grafu):
         modul_rychlosti = np.sqrt(np.sum(self.rychlosti_castic**2, axis = 1))   #v1=[sqrt(x1^2 + y1^2)], v2=[sqrt(x2^2 + y2^2)]
         plt.figure( figsize=(10,6))
         plt.hist(modul_rychlosti, bins = 20, density= True, alpha = 0.6)
@@ -128,7 +129,13 @@ class Castice:
         sorted_rychl = np.sort(modul_rychlosti)
         plt.plot(sorted_rychl, maxwell.pdf(sorted_rychl, scale = skalovani))
 
-        plt.show()
+        #plt.show()
+        plt.savefig(f'{nazev_grafu}.png')
+
+        y, binEdges = np.histogram(modul_rychlosti, bins=20)
+        bincenters = 0.5 * (binEdges[1:] + binEdges[:-1])
+        #return sorted_rychl, modul_rychlosti
+        return bincenters, y, modul_rychlosti
 
 
     def mihani_castic_anim(self):
@@ -140,7 +147,6 @@ class Castice:
         fig = plt.figure(figsize=(9, 12))
         ax = fig.add_subplot(111, projection='3d')
 
-        
         data_poloh = np.array(self.pozice_castic) 
         x, y, z = data_poloh[:,0], data_poloh[:,1], data_poloh[:,2]
         graph = ax.scatter(x, y, z)
@@ -162,15 +168,41 @@ class Castice:
         plt.show()
 
 
+def vykresli_multigraf():
+    ...
+
+
+def vykresli_multiplotgraf(xs, ys):
+    plt.figure(figsize=(10,6))
+    for i in range(len(xs)):
+        plt.plot(xs[i], ys[i])
+    plt.savefig('multiplotgraf.png')
+
+def vykresli_multihistogram(ys):
+    plt.figure(figsize=(10,6))
+    plt.tight_layout()
+    for y in ys:
+        plt.hist(y, bins=50, alpha=0.5)
+    plt.savefig('multihistgraf.png')
+    
+
 
 def main():
+    xs, ys, yhists = [], [], []
     castice = Castice(27, 100)
     castice.generovat_zacatek()
-    castice.mihani_castic(10000) # ustalovani systemu
-    castice.porovnani_s_max_rozd()
+    castice.mihani_castic(500) # ustalovani systemu
+    x, y, yhist = castice.porovnani_s_max_rozd("graficek_0")
+    xs.append(x)
+    ys.append(y)
     for i in range(2):
-        castice.mihani_castic(5000)
-        castice.porovnani_s_max_rozd()
+        castice.mihani_castic(100)
+        x, y, yhist = castice.porovnani_s_max_rozd(f"graficek_{i+1}")
+        xs.append(x)
+        ys.append(y)
+        yhists.append(yhist)
+    vykresli_multiplotgraf(xs, ys)
+    vykresli_multihistogram(yhists)
     castice.animovat_mihani_castic()
 
 

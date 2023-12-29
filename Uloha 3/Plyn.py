@@ -185,7 +185,7 @@ def generace1():
     castice.animovat_mihani_castic(gif_name="animece_po10tisicich_kroku.gif")
     tlak_sim, teor_tlak = castice.vypoc_tlak_simulace()
     print(f"Sim tlak: {tlak_sim} teor tlak: {teor_tlak}" )
-    #jjkhkjh
+    
     
 def generace2():
     castice = Castice(-27, 200)  

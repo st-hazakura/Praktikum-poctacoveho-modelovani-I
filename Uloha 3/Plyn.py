@@ -2,11 +2,21 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.stats import maxwell
 from matplotlib.animation import FuncAnimation, PillowWriter
+from progress.bar import Bar
+from typing import List, Tuple
 
 
 BOLTZMANNOVA_KONSTANTA: float = 1.380649E-23
 HMOTNOST_CASTICE: float = 1E-26 #kg
 ROZMER_ATOMU: float = 1*1E-10   # 1 anstrem
+POCET_ITERACI: int = 30000
+POCET_EKVILIBRACNICH_KROKU: int = 10000
+POCET_CASTIC: int = 200
+TEPLOTY: int = [27, -27, -270]
+POCET_GRAFU: int = 4
+PRINT_MODULO: int = POCET_ITERACI / POCET_GRAFU
+STATE_MODULO: int = POCET_ITERACI / 5
+FONT_SIZE: int = 16
 
 
 class Castice:
@@ -116,18 +126,38 @@ class Castice:
             self.nejmensi_cas_srazky()
             self.pohnout_casticema_o_tmin()
             self.kolize()
+            if i % PRINT_MODULO == 0:
+                self.porovnani_s_max_rozd(iterace=i)
+            if i % STATE_MODULO == 0:
+                print(f"Teplota: {self.teplota}, {round(float(i)/pocet_iteraci_mihani*100, 0)} % HOTOVO")
 
 
-    def porovnani_s_max_rozd(self):
+    def porovnani_s_max_rozd(self, iterace: int, zapis_do_souboru: bool = False) -> None:
         modul_rychlosti = np.sqrt(np.sum(self.rychlosti_castic**2, axis = 1))   #v1=[sqrt(x1^2 + y1^2)], v2=[sqrt(x2^2 + y2^2)]
         plt.figure( figsize=(10,6))
         plt.hist(modul_rychlosti, bins = 20, density= True, alpha = 0.6)
 
         skalovani = np.sqrt(BOLTZMANNOVA_KONSTANTA * self.teplota / HMOTNOST_CASTICE)
         sorted_rychl = np.sort(modul_rychlosti)
-        plt.plot(sorted_rychl, maxwell.pdf(sorted_rychl, scale = skalovani))
+        plt.rc('font', size=FONT_SIZE)
+        plt.xlim(0, 2600)
+        plt.xlabel("v [m/s]")
+        plt.ylabel("f(v)")
+        plt.title(f"Rozdělení rychlosti molekul (iterace={iterace}, teplota={int(round(self.teplota, 0))})")
+        hustoty_pravdepodobnosti = maxwell.pdf(sorted_rychl, scale = skalovani)
+        plt.plot(sorted_rychl, hustoty_pravdepodobnosti)
 
-        plt.show()
+        #plt.show()
+        plt.savefig(f"Grafy/mb_iterace_{int(round(self.teplota, 0))}_{iterace}.jpg")
+        
+        if zapis_do_souboru:
+            nazev_souboru = f"Grafy/mb_data_teplota_{int(round(self.teplota, 0))}_iterace_{iterace}.txt"
+            self.zapis_MBdata_do_souboru(data=list(zip(sorted_rychl, hustoty_pravdepodobnosti)), nazev_souboru=nazev_souboru)
+        
+    def zapis_MBdata_do_souboru(self, data: List[Tuple[float, float]], nazev_souboru: str):
+        with open(nazev_souboru, "w") as soubor:
+            for dvojice in data:
+                soubor.write(f"{dvojice[0]} {dvojice[1]}\n")
 
 
     def mihani_castic_anim(self):
@@ -139,7 +169,6 @@ class Castice:
     def animovat_mihani_castic(self, num_steps=200, gif_name="beznazvu.gif"):
         fig = plt.figure(figsize=(9, 12))
         ax = fig.add_subplot(111, projection='3d')
-
 
         data_poloh = np.array(self.pozice_castic)
         x, y, z = data_poloh[:,0], data_poloh[:,1], data_poloh[:,2]
@@ -166,53 +195,24 @@ class Castice:
 
 
     def vypoc_tlak_simulace(self):
-        celkova_kineticka_energie = np.sum(0.5 * HMOTNOST_CASTICE * np.sum(self.rychlosti_castic**2, axis=1))
-        V = self.delka_jedne_steny ** 3
-        tlak_simulace = (2/3) * (self.pocet_castic /V) * celkova_kineticka_energie
+        V = self.delka_jedne_steny ** 3        
+        tlak_simulace = (1 / (3*V)) * (np.sum(HMOTNOST_CASTICE * np.sum(self.rychlosti_castic**2, axis=1)))
         teor_tlak = (BOLTZMANNOVA_KONSTANTA * self.pocet_castic * self.teplota) / V   #P V = N kB T
         return tlak_simulace, teor_tlak
     
     
-    
-def generace1():
-    castice = Castice(27, 200) #300k
-    castice.generovat_zacatek()
-    castice.mihani_castic(10000)
-    castice.porovnani_s_max_rozd()
-    for i in range(4):
-        castice.mihani_castic(5000)
-        castice.porovnani_s_max_rozd()
-    castice.animovat_mihani_castic(gif_name="animece_po10tisicich_kroku.gif")
-    tlak_sim, teor_tlak = castice.vypoc_tlak_simulace()
-    print(f"Sim tlak: {tlak_sim} teor tlak: {teor_tlak}" )
-    
-    
-def generace2():
-    castice = Castice(-27, 200)  
-    castice.generovat_zacatek()
-    castice.mihani_castic(10000)
-    castice.porovnani_s_max_rozd()
-    for i in range(4):
-        castice.mihani_castic(5000)
-        castice.porovnani_s_max_rozd()
-    castice.animovat_mihani_castic()
-    tlak_sim, teor_tlak = castice.vypoc_tlak_simulace()
-    print(f"Sim tlak: {tlak_sim} teor tlak: {teor_tlak}" )
-    
-    
-def generace3():
-    castice = Castice(-270, 200) #3k
-    castice.generovat_zacatek()
-    castice.mihani_castic(10000)
-    castice.porovnani_s_max_rozd()
-    for i in range(4):
-        castice.mihani_castic(5000)
-        castice.porovnani_s_max_rozd()
-    castice.animovat_mihani_castic()
-    tlak_sim, teor_tlak = castice.vypoc_tlak_simulace()
-    print(f"Sim tlak: {tlak_sim} teor tlak: {teor_tlak}" )
-    
+def main():
+    for teplota in TEPLOTY:
+        castice = Castice(teplota, POCET_CASTIC) #300k
+        castice.generovat_zacatek()
+        castice.mihani_castic(POCET_EKVILIBRACNICH_KROKU)
+        castice.mihani_castic(POCET_ITERACI)
+        castice.porovnani_s_max_rozd(iterace=POCET_ITERACI, zapis_do_souboru=True)
+        #castice.animovat_mihani_castic(gif_name="animece_po10tisicich_kroku.gif")
+        tlak_sim, teor_tlak = castice.vypoc_tlak_simulace()
+        print(f"Sim tlak: {tlak_sim} teor tlak: {teor_tlak}" )
 
-generace1()
 
+if __name__ == "__main__":
+    main()
 

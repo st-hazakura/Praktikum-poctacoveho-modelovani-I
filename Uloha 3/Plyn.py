@@ -1,13 +1,12 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.stats import maxwell
-from matplotlib.animation import FuncAnimation
+from matplotlib.animation import FuncAnimation, PillowWriter
 
 
 BOLTZMANNOVA_KONSTANTA: float = 1.380649E-23
 HMOTNOST_CASTICE: float = 1E-26 #kg
 ROZMER_ATOMU: float = 1*1E-10   # 1 anstrem
-MOLARNI_P_KONST: float = 8.315
 
 
 class Castice:
@@ -57,7 +56,7 @@ class Castice:
 
 
     def nejmensi_cas_srazky(self):
-        self.t_min= np.inf # + nekonecno
+        self.t_min= np.inf 
         for i in range(self.pocet_castic - 1):
             for j in range(i+1, self.pocet_castic):
                 ri, rj = self.pozice_castic[i], self.pozice_castic[j]
@@ -136,12 +135,13 @@ class Castice:
         self.pohnout_casticema_o_tmin()
         self.kolize()
 
-    def animovat_mihani_castic(self, num_steps=200):
+
+    def animovat_mihani_castic(self, num_steps=200, gif_name="beznazvu.gif"):
         fig = plt.figure(figsize=(9, 12))
         ax = fig.add_subplot(111, projection='3d')
 
-        
-        data_poloh = np.array(self.pozice_castic) 
+
+        data_poloh = np.array(self.pozice_castic)
         x, y, z = data_poloh[:,0], data_poloh[:,1], data_poloh[:,2]
         graph = ax.scatter(x, y, z)
 
@@ -151,28 +151,68 @@ class Castice:
 
 
         def update(frame):
-            self.mihani_castic_anim()  
+            self.mihani_castic_anim()
             data_poloh = np.array(self.pozice_castic)
             x, y, z = data_poloh[:,0], data_poloh[:,1], data_poloh[:,2]
             graph._offsets3d = (x, y, z)
             return graph,
 
-        ani = FuncAnimation(fig, update, frames=num_steps, interval=20, blit=False)
+        ani = FuncAnimation(fig, update, frames=num_steps, interval=10, blit=False)
         plt.get_current_fig_manager().window.state('zoomed')
+        
+        ani.save(gif_name, writer=PillowWriter())
+        
         plt.show()
 
 
-
-def main():
-    castice = Castice(27, 100)
+    def vypoc_tlak_simulace(self):
+        celkova_kineticka_energie = np.sum(0.5 * HMOTNOST_CASTICE * np.sum(self.rychlosti_castic**2, axis=1))
+        V = self.delka_jedne_steny ** 3
+        tlak_simulace = (2/3) * (self.pocet_castic /V) * celkova_kineticka_energie
+        teor_tlak = (BOLTZMANNOVA_KONSTANTA * self.pocet_castic * self.teplota) / V   #P V = N kB T
+        return tlak_simulace, teor_tlak
+    
+    
+    
+def generace1():
+    castice = Castice(27, 200) #300k
     castice.generovat_zacatek()
-    castice.mihani_castic(10000) # ustalovani systemu
+    castice.mihani_castic(10000)
     castice.porovnani_s_max_rozd()
-    for i in range(2):
+    for i in range(4):
+        castice.mihani_castic(5000)
+        castice.porovnani_s_max_rozd()
+    castice.animovat_mihani_castic(gif_name="animece_po10tisicich_kroku.gif")
+    tlak_sim, teor_tlak = castice.vypoc_tlak_simulace()
+    print(f"Sim tlak: {tlak_sim} teor tlak: {teor_tlak}" )
+    
+    
+def generace2():
+    castice = Castice(-27, 200)  
+    castice.generovat_zacatek()
+    castice.mihani_castic(10000)
+    castice.porovnani_s_max_rozd()
+    for i in range(4):
         castice.mihani_castic(5000)
         castice.porovnani_s_max_rozd()
     castice.animovat_mihani_castic()
+    tlak_sim, teor_tlak = castice.vypoc_tlak_simulace()
+    print(f"Sim tlak: {tlak_sim} teor tlak: {teor_tlak}" )
+    
+    
+def generace3():
+    castice = Castice(-270, 200) #3k
+    castice.generovat_zacatek()
+    castice.mihani_castic(10000)
+    castice.porovnani_s_max_rozd()
+    for i in range(4):
+        castice.mihani_castic(5000)
+        castice.porovnani_s_max_rozd()
+    castice.animovat_mihani_castic()
+    tlak_sim, teor_tlak = castice.vypoc_tlak_simulace()
+    print(f"Sim tlak: {tlak_sim} teor tlak: {teor_tlak}" )
+    
+
+generace1()
 
 
-if __name__ == "__main__":
-    main()

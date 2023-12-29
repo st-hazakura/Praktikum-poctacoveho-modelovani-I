@@ -4,7 +4,7 @@
 
 **Ukázka simulace při ekvilibraci.**
 
-![Alt Text](Animace_zacatku2.gif)
+![Alt Text](animece_zacatku2.gif)
 
 
 **Ukázka simulace po ustálení systému.**

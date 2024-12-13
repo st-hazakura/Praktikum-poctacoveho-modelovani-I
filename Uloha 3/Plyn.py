@@ -3,12 +3,21 @@ import matplotlib.pyplot as plt
 from scipy.stats import maxwell
 from scipy import interpolate
 from matplotlib.animation import FuncAnimation
+from progress.bar import Bar
+from typing import List, Tuple
 
 #test
 BOLTZMANNOVA_KONSTANTA: float = 1.380649E-23
 HMOTNOST_CASTICE: float = 1E-26 #kg
 ROZMER_ATOMU: float = 1*1E-10   # 1 anstrem
-MOLARNI_P_KONST: float = 8.315
+POCET_ITERACI: int = 30000
+POCET_EKVILIBRACNICH_KROKU: int = 10000
+POCET_CASTIC: int = 200
+TEPLOTY: int = [27, -27, -270]
+POCET_GRAFU: int = 4
+PRINT_MODULO: int = POCET_ITERACI / POCET_GRAFU
+STATE_MODULO: int = POCET_ITERACI / 5
+FONT_SIZE: int = 16
 
 
 class Castice:
@@ -58,7 +67,7 @@ class Castice:
 
 
     def nejmensi_cas_srazky(self):
-        self.t_min= np.inf # + nekonecno
+        self.t_min= np.inf 
         for i in range(self.pocet_castic - 1):
             for j in range(i+1, self.pocet_castic):
                 ri, rj = self.pozice_castic[i], self.pozice_castic[j]
@@ -118,9 +127,14 @@ class Castice:
             self.nejmensi_cas_srazky()
             self.pohnout_casticema_o_tmin()
             self.kolize()
+            if i % PRINT_MODULO == 0:
+                self.porovnani_s_max_rozd(iterace=i)
+            if i % STATE_MODULO == 0:
+                print(f"Teplota: {self.teplota}, {round(float(i)/pocet_iteraci_mihani*100, 0)} % HOTOVO")
 
 
-    def porovnani_s_max_rozd(self, nazev_grafu):
+
+    def porovnani_s_max_rozd(self, iterace: int, zapis_do_souboru: bool = False) -> None:
         modul_rychlosti = np.sqrt(np.sum(self.rychlosti_castic**2, axis = 1))   #v1=[sqrt(x1^2 + y1^2)], v2=[sqrt(x2^2 + y2^2)]
         plt.figure( figsize=(10,6))
         plt.hist(modul_rychlosti, bins = 20, density= True, alpha = 0.6)
@@ -143,11 +157,12 @@ class Castice:
         self.pohnout_casticema_o_tmin()
         self.kolize()
 
-    def animovat_mihani_castic(self, num_steps=200):
+
+    def animovat_mihani_castic(self, num_steps=200, gif_name="beznazvu.gif"):
         fig = plt.figure(figsize=(9, 12))
         ax = fig.add_subplot(111, projection='3d')
 
-        data_poloh = np.array(self.pozice_castic) 
+        data_poloh = np.array(self.pozice_castic)
         x, y, z = data_poloh[:,0], data_poloh[:,1], data_poloh[:,2]
         graph = ax.scatter(x, y, z)
 
@@ -157,14 +172,17 @@ class Castice:
 
 
         def update(frame):
-            self.mihani_castic_anim()  
+            self.mihani_castic_anim()
             data_poloh = np.array(self.pozice_castic)
             x, y, z = data_poloh[:,0], data_poloh[:,1], data_poloh[:,2]
             graph._offsets3d = (x, y, z)
             return graph,
 
-        ani = FuncAnimation(fig, update, frames=num_steps, interval=20, blit=False)
+        ani = FuncAnimation(fig, update, frames=num_steps, interval=10, blit=False)
         plt.get_current_fig_manager().window.state('zoomed')
+        
+        ani.save(gif_name, writer=PillowWriter())
+        
         plt.show()
 
 
@@ -206,5 +224,7 @@ def main():
     castice.animovat_mihani_castic()
 
 
+
 if __name__ == "__main__":
     main()
+

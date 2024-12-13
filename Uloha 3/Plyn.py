@@ -1,11 +1,12 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.stats import maxwell
-from matplotlib.animation import FuncAnimation, PillowWriter
+from scipy import interpolate
+from matplotlib.animation import FuncAnimation
 from progress.bar import Bar
 from typing import List, Tuple
 
-
+#test
 BOLTZMANNOVA_KONSTANTA: float = 1.380649E-23
 HMOTNOST_CASTICE: float = 1E-26 #kg
 ROZMER_ATOMU: float = 1*1E-10   # 1 anstrem
@@ -132,6 +133,7 @@ class Castice:
                 print(f"Teplota: {self.teplota}, {round(float(i)/pocet_iteraci_mihani*100, 0)} % HOTOVO")
 
 
+
     def porovnani_s_max_rozd(self, iterace: int, zapis_do_souboru: bool = False) -> None:
         modul_rychlosti = np.sqrt(np.sum(self.rychlosti_castic**2, axis = 1))   #v1=[sqrt(x1^2 + y1^2)], v2=[sqrt(x2^2 + y2^2)]
         plt.figure( figsize=(10,6))
@@ -139,25 +141,15 @@ class Castice:
 
         skalovani = np.sqrt(BOLTZMANNOVA_KONSTANTA * self.teplota / HMOTNOST_CASTICE)
         sorted_rychl = np.sort(modul_rychlosti)
-        plt.rc('font', size=FONT_SIZE)
-        plt.xlim(0, 2600)
-        plt.xlabel("v [m/s]")
-        plt.ylabel("f(v)")
-        plt.title(f"Rozdělení rychlosti molekul (iterace={iterace}, teplota={int(round(self.teplota, 0))})")
-        hustoty_pravdepodobnosti = maxwell.pdf(sorted_rychl, scale = skalovani)
-        plt.plot(sorted_rychl, hustoty_pravdepodobnosti)
+        plt.plot(sorted_rychl, maxwell.pdf(sorted_rychl, scale = skalovani))
 
         #plt.show()
-        plt.savefig(f"Grafy/mb_iterace_{int(round(self.teplota, 0))}_{iterace}.jpg")
-        
-        if zapis_do_souboru:
-            nazev_souboru = f"Grafy/mb_data_teplota_{int(round(self.teplota, 0))}_iterace_{iterace}.txt"
-            self.zapis_MBdata_do_souboru(data=list(zip(sorted_rychl, hustoty_pravdepodobnosti)), nazev_souboru=nazev_souboru)
-        
-    def zapis_MBdata_do_souboru(self, data: List[Tuple[float, float]], nazev_souboru: str):
-        with open(nazev_souboru, "w") as soubor:
-            for dvojice in data:
-                soubor.write(f"{dvojice[0]} {dvojice[1]}\n")
+        plt.savefig(f'{nazev_grafu}.png')
+
+        y, binEdges = np.histogram(modul_rychlosti, bins=20)
+        bincenters = 0.5 * (binEdges[1:] + binEdges[:-1])
+        #return sorted_rychl, modul_rychlosti
+        return bincenters, y, modul_rychlosti
 
 
     def mihani_castic_anim(self):
@@ -194,23 +186,43 @@ class Castice:
         plt.show()
 
 
-    def vypoc_tlak_simulace(self):
-        V = self.delka_jedne_steny ** 3        
-        tlak_simulace = (1 / (3*V)) * (np.sum(HMOTNOST_CASTICE * np.sum(self.rychlosti_castic**2, axis=1)))
-        teor_tlak = (BOLTZMANNOVA_KONSTANTA * self.pocet_castic * self.teplota) / V   #P V = N kB T
-        return tlak_simulace, teor_tlak
+def vykresli_multigraf():
+    ...
+
+
+def vykresli_multiplotgraf(xs, ys):
+    plt.figure(figsize=(10,6))
+    for i in range(len(xs)):
+        plt.plot(xs[i], ys[i])
+    plt.savefig('multiplotgraf.png')
+
+def vykresli_multihistogram(ys):
+    plt.figure(figsize=(10,6))
+    plt.tight_layout()
+    for y in ys:
+        plt.hist(y, bins=50, alpha=0.5)
+    plt.savefig('multihistgraf.png')
     
-    
+
+
 def main():
-    for teplota in TEPLOTY:
-        castice = Castice(teplota, POCET_CASTIC) #300k
-        castice.generovat_zacatek()
-        castice.mihani_castic(POCET_EKVILIBRACNICH_KROKU)
-        castice.mihani_castic(POCET_ITERACI)
-        castice.porovnani_s_max_rozd(iterace=POCET_ITERACI, zapis_do_souboru=True)
-        #castice.animovat_mihani_castic(gif_name="animece_po10tisicich_kroku.gif")
-        tlak_sim, teor_tlak = castice.vypoc_tlak_simulace()
-        print(f"Sim tlak: {tlak_sim} teor tlak: {teor_tlak}" )
+    xs, ys, yhists = [], [], []
+    castice = Castice(27, 100)
+    castice.generovat_zacatek()
+    castice.mihani_castic(500) # ustalovani systemu
+    x, y, yhist = castice.porovnani_s_max_rozd("graficek_0")
+    xs.append(x)
+    ys.append(y)
+    for i in range(2):
+        castice.mihani_castic(100)
+        x, y, yhist = castice.porovnani_s_max_rozd(f"graficek_{i+1}")
+        xs.append(x)
+        ys.append(y)
+        yhists.append(yhist)
+    vykresli_multiplotgraf(xs, ys)
+    vykresli_multihistogram(yhists)
+    castice.animovat_mihani_castic()
+
 
 
 if __name__ == "__main__":
